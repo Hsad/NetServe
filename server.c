@@ -2,6 +2,8 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <netinet/in.h>
 #include <stdio.h>
@@ -14,6 +16,11 @@
 
 int main()
 {
+	//create Directory
+	int dirReturn = mkdir(".storage", S_IFDIR | S_IRWXU | S_IRWXO );
+	printf("%d",dirReturn);
+
+
   /* Create the listener socket as TCP socket */
   int sock = socket( PF_INET, SOCK_STREAM, 0 );
 
