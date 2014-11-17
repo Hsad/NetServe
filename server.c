@@ -13,12 +13,16 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include <fcntl.h>
+
 #define BUFFER_SIZE 1024
 
 int main()
 {
+	//path for the storage file address
+	char storagePath[512];
+	strncpy (storagePath, ".storage/", 9);
 
-	
 	//create Directory
 	int dirReturn = mkdir(".storage", S_IFDIR | S_IRWXU | S_IRWXO );
 	printf("%d",dirReturn);
@@ -128,17 +132,30 @@ else if ( n == 0 )
 	printf("\nDASH FINALY SAYS: ");
 	printf("%s",bytes);
 
-	if (strcmp(command,"ADD")){
+	if (strcmp(command,"ADD") == 0){
 	  //if (){
 	  //for non text files
 	  //}
+		printf("inside the add command");
 		struct stat sb;
-		if (stat(".storage/xyz.txt", &sb) == -1){
+		//printf("%s",storagePath);
+		int iter;			
+		for (iter = 0; iter < 512; iter++){
+			storagePath[iter + 9] = fileName[iter];
+			if (fileName[iter] == '\0'){
+				break;
+			}
+		}
+		//printf("%s",storagePath);
+		if (stat(storagePath, &sb) == -1){
 			printf("seems to have failed");
 			//probably need to create the file.
-			open();
+			
+			open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
 		}else{
 			printf("exists");
+			//send back ERROR: FILE EXISTS
+			
 			
 		}
 	  //need to search for the filename to see if it exists
