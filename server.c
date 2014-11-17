@@ -22,6 +22,7 @@ int main()
 	//path for the storage file address
 	char storagePath[512];
 	strncpy (storagePath, ".storage/", 9);
+	char *dotTxt = ".txt";
 
 	//create Directory
 	int dirReturn = mkdir(".storage", S_IFDIR | S_IRWXU | S_IRWXO );
@@ -121,16 +122,26 @@ else if ( n == 0 )
 	//strtok with space, find the command the file and the byte number
 	//look at the command in this order, list, read, delete, add, append
 	char bufCopy[BUFFER_SIZE];
+	char dataBuffer[BUFFER_SIZE];
 	strncpy(bufCopy, buffer, BUFFER_SIZE);
+	strncpy(dataBuffer, buffer, BUFFER_SIZE);
 	char *command = strtok(bufCopy," \n");
 	char *fileName = strtok(NULL," \n");
 	char *bytes = strtok(NULL," \n");
+	char *dataStart = strchr(buffer, '\n');
 	printf("DASH SAYS: ");
 	printf("%s",command);
 	printf("\nDASH NOW SAYS: ");
 	printf("%s",fileName);
 	printf("\nDASH FINALY SAYS: ");
 	printf("%s",bytes);
+	int bytesInt = atoi(bytes);
+	printf("%i",bytesInt);
+	int it;	
+	for(it = 1; it < bytesInt+2; it++){
+		dataBuffer[it - 1] = dataStart[it];
+	}
+	printf("%s", dataBuffer);  //assuming data is null termed
 
 	if (strcmp(command,"ADD") == 0){
 	  //if (){
@@ -149,9 +160,13 @@ else if ( n == 0 )
 		//printf("%s",storagePath);
 		if (stat(storagePath, &sb) == -1){
 			printf("seems to have failed");
-			//probably need to create the file.
-			
-			open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+			int fd;
+			fd = open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+			if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
+				write(fd, dataBuffer, bytesInt - 1); 	
+			}
+			else{	write(fd, dataBuffer, bytesInt );	}
+			//need to send back ACK
 		}else{
 			printf("exists");
 			//send back ERROR: FILE EXISTS
