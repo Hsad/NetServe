@@ -17,8 +17,6 @@
 
 int main()
 {
-
-	
 	//create Directory
 	int dirReturn = mkdir(".storage", S_IFDIR | S_IRWXU | S_IRWXO );
 	printf("%d",dirReturn);

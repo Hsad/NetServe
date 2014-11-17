@@ -47,8 +47,7 @@ int main()
     exit( EXIT_FAILURE );
   }
 
-  //char * msg = "heloo";
-  char * msg = "ADD abc.txt 10\nabcdefghi\0";
+  char * msg = "hello world";
   int n = write( sock, msg, strlen( msg ) );
 fflush( NULL );
   if ( n < strlen( msg ) )
