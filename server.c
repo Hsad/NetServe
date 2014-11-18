@@ -99,104 +99,111 @@ int main()
 sleep( 10 );
 #endif
 
-do
-{
-      printf( "CHILD %d: Blocked on recv()\n", getpid() );
+			do
+			{
+		    printf( "CHILD %d: Blocked on recv()\n", getpid() );
 
-      /* can also use read() and write()..... */
-      n = recv( newsock, buffer, BUFFER_SIZE, 0 );
+		    /* can also use read() and write()..... */
+		    n = recv( newsock, buffer, BUFFER_SIZE, 0 );
 
-      if ( n < 0 )
-      {
-        perror( "recv() failed" );
-      }
-else if ( n == 0 )
-{
-  printf( "CHILD %d: Rcvd 0 from recv(); closing socket\n",
-          getpid() );
-}
-      else
-      {
-	//need to check if the file type is text, if so then branch to text
-	//need to check spaceing to break apart buffer and get the byte number
-	//strtok with space, find the command the file and the byte number
-	//look at the command in this order, list, read, delete, add, append
-	char bufCopy[BUFFER_SIZE];
-	char dataBuffer[BUFFER_SIZE];
-	strncpy(bufCopy, buffer, BUFFER_SIZE);
-	strncpy(dataBuffer, buffer, BUFFER_SIZE);
-	char *command = strtok(bufCopy," \n");
-	char *fileName = strtok(NULL," \n");
-	char *bytes = strtok(NULL," \n");
-	char *dataStart = strchr(buffer, '\n');
-	printf("DASH SAYS: ");
-	printf("%s",command);
-	printf("\nDASH NOW SAYS: ");
-	printf("%s",fileName);
-	printf("\nDASH FINALY SAYS: ");
-	printf("%s",bytes);
-	int bytesInt = atoi(bytes);
-	printf("%i",bytesInt);
-	int it;	
-	for(it = 1; it < bytesInt+2; it++){
-		dataBuffer[it - 1] = dataStart[it];
-	}
-	printf("%s", dataBuffer);  //assuming data is null termed
+		    if ( n < 0 )
+		    {
+		      perror( "recv() failed" );
+		    }
+				else if ( n == 0 )
+				{
+					printf( "CHILD %d: Rcvd 0 from recv(); closing socket\n",
+		        getpid() );
+				}
+		    else
+		    {
+					//need to check if the file type is text, if so then branch to text
+					//need to check spaceing to break apart buffer and get the byte number
+					//strtok with space, find the command the file and the byte number
+					//look at the command in this order, list, read, delete, add, append
+					char bufCopy[BUFFER_SIZE];
+					char dataBuffer[BUFFER_SIZE];
+					strncpy(bufCopy, buffer, BUFFER_SIZE);
+					strncpy(dataBuffer, buffer, BUFFER_SIZE);
+					char *command = strtok(bufCopy," \n");
+					char *fileName = strtok(NULL," \n");
+					char *bytes = strtok(NULL," \n");
+					char *dataStart = strchr(buffer, '\n');
+					printf("DASH SAYS: ");
+					printf("%s",command);
+					printf("\nDASH NOW SAYS: ");
+					printf("%s",fileName);
+					printf("\nDASH FINALY SAYS: ");
+					printf("%s",bytes);
+					int bytesInt = atoi(bytes);
+					printf("%i",bytesInt);
+					int it;	
+					for(it = 1; it < bytesInt+2; it++){
+						dataBuffer[it - 1] = dataStart[it];
+					}
+					printf("%s", dataBuffer);  //assuming data is null termed
 
-	if (strcmp(command,"ADD") == 0){
-	  //if (){
-	  //for non text files
-	  //}
-		printf("inside the add command");
-		struct stat sb;
-		//printf("%s",storagePath);
-		int iter;			
-		for (iter = 0; iter < 512; iter++){
-			storagePath[iter + 9] = fileName[iter];
-			if (fileName[iter] == '\0'){
-				break;
-			}
-		}
-		//printf("%s",storagePath);
-		if (stat(storagePath, &sb) == -1){
-			printf("seems to have failed");
-			int fd;
-			fd = open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-			if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
-				write(fd, dataBuffer, bytesInt - 1); 	
-			}
-			else{	write(fd, dataBuffer, bytesInt );	}
-			//need to send back ACK
-		}else{
-			printf("exists");
-			//send back ERROR: FILE EXISTS
+					if (strcmp(command,"ADD") == 0){
+						//if (){
+						//for non text files
+						//}
+						printf("inside the add command");
+						struct stat sb;
+						//printf("%s",storagePath);
+						int iter;			
+						for (iter = 0; iter < 512; iter++){
+							storagePath[iter + 9] = fileName[iter];
+							if (fileName[iter] == '\0'){
+								break;
+							}
+						}
+						//printf("%s",storagePath);
+						if (stat(storagePath, &sb) == -1){
+							printf("file created");
+							int fd;
+							fd = open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+							if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
+								write(fd, dataBuffer, bytesInt - 1); 	
+							}
+							else{	write(fd, dataBuffer, bytesInt );	}
+							//need to send back ACK
+							int ret = send( newsock, "ACK", 3, 0 );
+							fflush( NULL );
+							if ( ret != 3 ) { perror( "send() failed" ); }
+						}
+						else{
+							printf("exists");
+							//send back ERROR: FILE EXISTS
+							int ret = send( newsock, "ERROR: FILE EXISTS", 18, 0 );
+							fflush( NULL );
+							if ( ret != 18 ) { perror( "send() failed" ); }
 			
-			
-		}
-	  //need to search for the filename to see if it exists
-	  //if not create the file and fill in the data and return ACK, else return error
-	}
+						}
+						//need to search for the filename to see if it exists
+						//if not create the file and fill in the data and return ACK, else return error
+					}
 
+					/*
+		      buffer[n] = '\0';  // assuming text.... 
+		      printf( "CHILD %d: Rcvd message from %s: %s\n",
+		              getpid(),
+		              inet_ntoa( (struct in_addr)client.sin_addr ),
+		              buffer );
 
-        buffer[n] = '\0';  /* assuming text.... */
-        printf( "CHILD %d: Rcvd message from %s: %s\n",
-                getpid(),
-                inet_ntoa( (struct in_addr)client.sin_addr ),
-                buffer );
-
-        /* send ack message back to the client */
-        n = send( newsock, "ACK", 3, 0 );
-fflush( NULL );
-        if ( n != 3 )
-        {
-          perror( "send() failed" );
-        }
-      }
-}
-while ( n > 0 );
-/* this do..while loop exits when the recv() call
-   returns 0, indicating the remote/client side has
-   closed its socket */
+		      // send ack message back to the client 
+		      n = send( newsock, "ACK", 3, 0 );
+	fflush( NULL );
+		      if ( n != 3 )
+		      {
+		        perror( "send() failed" );
+		      }
+					*/
+		    }	
+			}
+			while ( n > 0 );
+			/* this do..while loop exits when the recv() call
+		 	returns 0, indicating the remote/client side has
+		 	closed its socket */
 
       printf( "CHILD %d: Bye!\n", getpid() );
       close( newsock );

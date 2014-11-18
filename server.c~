@@ -159,36 +159,37 @@ else if ( n == 0 )
 		}
 		//printf("%s",storagePath);
 		if (stat(storagePath, &sb) == -1){
-			printf("seems to have failed");
-			//probably need to create the file.
+			printf("file created");
 			int fd;
 			fd = open(storagePath, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-			//need to fill in file contents
 			if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
-				write(fd, dataBuffer, bytesInt - 1); //need to check if txt file, and not write the \0 byte
+				write(fd, dataBuffer, bytesInt - 1); 	
 			}
-			else{
-				write(fd, dataBuffer, bytesInt );
-			}
+			else{	write(fd, dataBuffer, bytesInt );	}
 			//need to send back ACK
+			int ret = send( newsock, "ACK", 3, 0 );
+			fflush( NULL );
+      if ( ret != 3 ) { perror( "send() failed" ); }
 		}else{
 			printf("exists");
 			//send back ERROR: FILE EXISTS
-			
+			int ret = send( newsock, "ERROR: FILE EXISTS", 18, 0 );
+			fflush( NULL );
+      if ( ret != 18 ) { perror( "send() failed" ); }
 			
 		}
 	  //need to search for the filename to see if it exists
 	  //if not create the file and fill in the data and return ACK, else return error
 	}
 
-
-        buffer[n] = '\0';  /* assuming text.... */
+				/*
+        buffer[n] = '\0';  // assuming text.... 
         printf( "CHILD %d: Rcvd message from %s: %s\n",
                 getpid(),
                 inet_ntoa( (struct in_addr)client.sin_addr ),
                 buffer );
 
-        /* send ack message back to the client */
+        // send ack message back to the client 
         n = send( newsock, "ACK", 3, 0 );
 fflush( NULL );
         if ( n != 3 )
@@ -196,6 +197,7 @@ fflush( NULL );
           perror( "send() failed" );
         }
       }
+			*/
 }
 while ( n > 0 );
 /* this do..while loop exits when the recv() call
