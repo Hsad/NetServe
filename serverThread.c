@@ -147,20 +147,8 @@ sleep( 10 );
 					printf("%s", dataBuffer);  //assuming data is null termed
 
 					if (strcmp(command,"ADD") == 0){
-						//if (){
-						//for non text files
-						//}
 						printf("inside the add command\n");
 						struct stat sb;
-						//printf("%s",storagePath);
-						//int iter;			
-						//for (iter = 0; iter < 512; iter++){
-						//	storagePath[iter + 9] = fileName[iter];
-						//	if (fileName[iter] == '\0'){
-						//		break;
-						//	}
-						//}
-						//printf("%s",storagePath);
 						if (stat(fileName, &sb) == -1){
 							printf("file created\n");
 							int fd;
@@ -168,7 +156,7 @@ sleep( 10 );
 							if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
 								write(fd, dataBuffer, bytesInt - 1); 	
 							}
-							else{	write(fd, dataBuffer, bytesInt );	}
+							else{	write(fd, dataBuffer, bytesInt );	} //not a txt file, I hope
 							//need to send back ACK
 							int ret = send( newsock, "ACK", 3, 0 );
 							fflush( NULL );
@@ -185,22 +173,6 @@ sleep( 10 );
 						//need to search for the filename to see if it exists
 						//if not create the file and fill in the data and return ACK, else return error
 					}
-
-					/*
-		      buffer[n] = '\0';  // assuming text.... 
-		      printf( "CHILD %d: Rcvd message from %s: %s\n",
-		              getpid(),
-		              inet_ntoa( (struct in_addr)client.sin_addr ),
-		              buffer );
-
-		      // send ack message back to the client 
-		      n = send( newsock, "ACK", 3, 0 );
-	fflush( NULL );
-		      if ( n != 3 )
-		      {
-		        perror( "send() failed" );
-		      }
-					*/
 		    }	
 			}
 			while ( n > 0 );
