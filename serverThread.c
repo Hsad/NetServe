@@ -14,6 +14,7 @@
 #include <errno.h>
 
 #include <fcntl.h>
+#include <dirent.h>
 
 #define BUFFER_SIZE 1024
 
@@ -24,8 +25,17 @@ int main()
 	//strncpy (storagePath, ".storage/", 9);
 	char *dotTxt = ".txt";
 
-	char *dirChange = ".storage";
-	chdir(dirChange);
+	pthread_t tid[25];
+	int ret;
+
+	//find current path for debugging
+	/*	
+	char paht[PATH_MAX];
+	getwd(paht);
+	if (paht != NULL){
+		printf("Paht is : %s\n", paht);	
+	}
+*/
 
 	//create Directory
 	int dirReturn = mkdir(".storage", S_IFDIR | S_IRWXU | S_IRWXO );
@@ -38,6 +48,34 @@ int main()
 			printf("creating .storage failed");
 		}
 	}
+	/*
+	getwd(paht);	
+	if (paht != NULL){
+		printf("Paht is : %s\n", paht);	
+	}*/
+
+	char *dirChange = ".storage";
+	chdir(dirChange);
+	
+	/*
+	getwd(paht);
+	if (paht != NULL){
+		printf("Paht is : %s\n", paht);	
+	}*/
+
+	//Empty directory
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(".");
+	if (d){
+		printf(" -- Deleteing contents of .storage\n");
+		while ((dir = readdir(d)) != NULL){
+			//printf("deleteing: %s\n", dir->d_name);			
+			unlink(dir->d_name);
+		}
+	}
+		
+	
 
 
   /* Create the listener socket as TCP socket */
@@ -86,8 +124,17 @@ int main()
 
     /* handle socket in child process */
 		//rather than forking we need to make it thread
+		//need to take in new connection and save the newsock var for the thread, 
+		//possibly with a mutex so that it isnt lost
+		//the thread should be created here
+		//
 
-    pid = fork();
+
+		
+
+
+
+		pid = fork();
 
     if ( pid < 0 )
     {
@@ -107,6 +154,7 @@ sleep( 10 );
 		    printf( "CHILD %d: Blocked on recv()\n", getpid() );
 
 		    /* can also use read() and write()..... */
+				
 		    n = recv( newsock, buffer, BUFFER_SIZE, 0 );
 
 		    if ( n < 0 )

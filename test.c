@@ -35,6 +35,14 @@ int main(){
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
 
 		if (ret != 0){printf("thread failed");}
+
+		
+	}
+
+	for (iter = 0; iter < 4; iter++){
+		pthread_join(tid[iter], (void **)&first);
+		printf("caught: %i  ", *first);
+		free(first);
 	}
 
   return 1;
@@ -44,10 +52,10 @@ int main(){
 void * threadMe(void * input){
 	
 	int one = *(int *)input;
-	free(input);
+	//free(input);
 	printf("my value is %i", one);
 
-	pthread_exit(NULL);
+	pthread_exit(input);
 }
 
 
