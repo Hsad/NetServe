@@ -16,16 +16,51 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#include <pthread.h>
+
 #define BUFFER_SIZE 1024
+
+struct mutexPair{
+	pthread_mutex_t readMutex1;
+	pthread_mutex_t modMutex2;
+};
+
+
+struct globalFileMutex{ //mutexs first
+	struct mutexPair * mutexArrayPtr[100];
+	char * filenameArrayPtr[100];
+};
+
+struct passThroughData{
+	struct globalFileMutex * mutexData;
+	int socket;	
+};
+
+
+void * threadStart(void * input);
+
 
 int main()
 {
+
+	//create mutex storage
+	struct globalFileMutex * fileMutexData;
+	fileMutexData = (struct globalFileMutex *) malloc(sizeof(struct globalFileMutex));
+	//if (fileMutexData->mutexArrayPtr[0] == NULL){
+	//	printf("array is null"); 
+	//}
+/*
+	fileMutexData->filenameArrayPtr[0] = (char *)malloc(sizeof("hello"));
+	char *tempText = "hello";
+	strncpy(fileMutexData->filenameArrayPtr[0], tempText, sizeof("hello"));
+	printf("hello? : %s", fileMutexData->filenameArrayPtr[0]);
+*/
 	//path for the storage file address
 	//char storagePath[512];
 	//strncpy (storagePath, ".storage/", 9);
 	char *dotTxt = ".txt";
 
-	pthread_t tid[25];
+	pthread_t tid; //[25];  not saving the tid, doesnt seem useful
 	int ret;
 
 	//find current path for debugging
@@ -63,7 +98,7 @@ int main()
 		printf("Paht is : %s\n", paht);	
 	}*/
 
-	//Empty directory
+	//Empty directory /// need to implement soemthing that fills out mutexes for the exisiting files when I remove this
 	DIR *d;
 	struct dirent *dir;
 	d = opendir(".");
@@ -115,6 +150,9 @@ int main()
   int pid;
   char buffer[ BUFFER_SIZE ];
 
+
+	struct passThroughData * threadStartInfo; //holds pointer to mutex Data and socket connection, to be passed to starting threads
+
   while ( 1 )
   {
     printf( "PARENT: Blocked on accept()\n" );
@@ -149,11 +187,40 @@ int main()
 		//set dontReadMutex, then set dontModMutex
 		//read: dontReadMutex readMutex (closeOpen to stop incoming new reads...?) then dontModMutex ....stuff.. modMutex
 		//add: dontReadMutex, dontModMutex ..add.. modMutex, readMutex
-		//
-		
-		
 		
 
+		//Deadlock rules, always have the same order, never lock a lower value whe you have a higher value
+		
+		//set lock on new reads, then lock modifications, then unlock mods, unlock reads 
+		//mutex priority: read == 1, mod == 2
+		//never lock read when mod is locked
+		
+
+		//readv2:  lockread, lockMod, unlock read, ........., unlock mod
+		//addv2: lock read, lock mod, .....if creating file, create mutex assosiation.... unlock mod, unlock read
+		//append: lock read, lock mod ...... unlock mod, unlock read
+		//list: ...list files...
+		//delete: lock read, lock mod .... delete file... save pointers to filename and mutexes... 
+		//  set to NULL in storage... unlock mod, unlock read, free filename and mutex mem, delete done
+
+		//need storage structure for each file, containing its two mutexes
+		//is it only two mutexes?  I think so..
+		//file mutexes need to be created for for currently existing files too
+		
+		//struct of two arrays of pointers
+		//first array is pointers to filenames, space is malloced
+		//second array is pointers of struct of two mutexes 
+		//index of file mame corresponds to mutex index
+		//created and destroyed with file
+		
+		threadStartInfo = (struct passThroughData *) malloc(sizeof(struct passThroughData));
+		threadStartInfo->socket = newsock;
+		//set pointer to mutex array
+
+
+		ret = pthread_create(&tid, NULL, threadStart, threadStartInfo);
+		if (ret != 0){printf("thread failed");}
+		//pthread_detach(tid);
 
 		pid = fork();
 
@@ -266,3 +333,38 @@ sleep( 10 );
 
   return EXIT_SUCCESS;
 }
+
+
+
+
+void * threadStart(void * input){
+	
+	struct passThroughData inputData = *(struct passThroughData *)input;
+	
+	/*
+	pthread_mutex_lock(one.mut);
+	printf("mutex locked\n");
+	fflush(NULL);
+	//free(input);
+	printf("my value is %i\n", one.num);
+	printf("globalVal was : %i\n",globalInt);
+	globalInt++;
+	printf("globalVal is : %i\n",globalInt);
+	pthread_mutex_unlock(one.mut);
+	printf("after mutex unlock\n");
+	pthread_exit(input);
+	*/
+
+	printf("Im A THREAD!!\n");
+	printf("my socket is %i\n", inputData.socket);
+
+	pthread_exit();	
+	return 0;
+}
+
+
+
+
+
+
+

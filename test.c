@@ -47,17 +47,19 @@ int main(){
 		first->num = iter;
 		first->mut = &mutex;
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
+		usleep(1000);  //Apparently this is important
 
 		if (ret != 0){printf("thread failed");}
 
 		
 	}
-
+	/*
 	for (iter = 0; iter < 4; iter++){
 		pthread_join(tid[iter], (void **)&first);
 		printf("caught: %i  \n", first->num);
 		free(first);
-	}
+	}*/
+	
 
 	pthread_mutex_destroy(&mutex);
   return 1;
@@ -66,20 +68,29 @@ int main(){
 
 void * threadMe(void * input){
 	
-
+	printf("just starting func");
+	fflush(NULL);
 
 	struct passOff one = *(struct passOff *)input;
 	pthread_mutex_lock(one.mut);
 	printf("mutex locked\n");
 	fflush(NULL);
-	//free(input);
+	
 	printf("my value is %i\n", one.num);
 	printf("globalVal was : %i\n",globalInt);
 	globalInt++;
 	printf("globalVal is : %i\n",globalInt);
 	pthread_mutex_unlock(one.mut);
 	printf("after mutex unlock\n");
-	pthread_exit(input);
+	
+	fflush(NULL);
+	//free(input);
+
+	pthread_exit(0);
+	
+
+	//exit(0);
+	//return 0;
 }
 
 
