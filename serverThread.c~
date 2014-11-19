@@ -16,7 +16,12 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#include <pthread.h>
+#include <poll.h>
+
 #define BUFFER_SIZE 1024
+
+char *dotTxt = ".txt";
 
 struct mutexPair{
 	pthread_mutex_t readMutex1;
@@ -56,7 +61,12 @@ int main()
 	//path for the storage file address
 	//char storagePath[512];
 	//strncpy (storagePath, ".storage/", 9);
-	char *dotTxt = ".txt";
+	
+
+
+//char *dotTxt = ".txt";
+
+
 
 	pthread_t tid; //[25];  not saving the tid, doesnt seem useful
 	int ret;
@@ -234,12 +244,12 @@ int main()
 #if 0
 sleep( 10 );
 #endif
-
+			/*
 			do
 			{
 		    printf( "CHILD %d: Blocked on recv()\n", getpid() );
-
-		    /* can also use read() and write()..... */
+				printf("socket in CHILD is: %i\n", newsock);
+		    // can also use read() and write()..... 
 				
 		    n = recv( newsock, buffer, BUFFER_SIZE, 0 );
 
@@ -310,12 +320,14 @@ sleep( 10 );
 		    }	
 			}
 			while ( n > 0 );
+			*/
+			
 			/* this do..while loop exits when the recv() call
 		 	returns 0, indicating the remote/client side has
 		 	closed its socket */
 
-      printf( "CHILD %d: Bye!\n", getpid() );
-      close( newsock );
+      //printf( "CHILD %d: Bye!\n", getpid() );
+      //close( newsock );
       exit( EXIT_SUCCESS );  /* child terminates here! */
 
       /* TO DO: add code to handle zombies! */
@@ -323,10 +335,11 @@ sleep( 10 );
     else /* pid > 0   PARENT */
     {
       /* parent simply closes the socket (endpoint) */
-      close( newsock );
+			printf("Parent1 closing Sock");      
+			//close( newsock );
     }
   }
-
+	printf("Parent2 closing Sock");
   close( sock );
 
   return EXIT_SUCCESS;
@@ -337,6 +350,8 @@ sleep( 10 );
 
 void * threadStart(void * input){
 	
+	pthread_detach(pthread_self());
+
 	struct passThroughData inputData = *(struct passThroughData *)input;
 	
 	/*
@@ -356,7 +371,145 @@ void * threadStart(void * input){
 	printf("Im A THREAD!!\n");
 	printf("my socket is %i\n", inputData.socket);
 
-	pthread_exit();	
+	char inputBuffer[ BUFFER_SIZE ];
+	
+	//set up polling to kill thread when the client leaves
+	//struct pollfd pollFileData;
+	//pollFileData.fd = inputData.socket;
+	//pollFileData.events = POLLIN | POLLHUP | POLLRDNORM;
+	//pollFileData.revents = 0;
+	
+	int recvVal;
+
+	do{
+		printf("Thread recive call\n");
+		fflush(NULL);
+		recvVal = recv( inputData.socket, inputBuffer, BUFFER_SIZE, 0 );
+
+		if (recvVal  < 0 )
+		{
+		  perror( "recv() failed" );
+		}
+		else if ( recvVal == 0 )
+		{
+			printf( "THREAD : Rcvd 0 from recv();\n");
+		}
+		else
+		{
+			//things happen here
+			printf("Things happen here");
+			//might want a function that takes the filename and return the mutex index, or just copy and paste like a fiend
+			
+
+	//initalizeation data, some might need to be moved elsewhere
+
+			char bufCopy[BUFFER_SIZE];    //like this
+			char dataBuffer[BUFFER_SIZE]; //and this
+			strncpy(bufCopy, inputBuffer, BUFFER_SIZE);
+			strncpy(dataBuffer, inputBuffer, BUFFER_SIZE);
+			char *command = strtok(bufCopy," \n");
+			char *fileName = strtok(NULL," \n");
+			char *bytes = strtok(NULL," \n");
+			char *dataStart = strchr(inputBuffer, '\n');
+			/*
+			printf("DASH SAYS: ");
+			printf("%s",command);
+			printf("\nDASH NOW SAYS: ");
+			printf("%s",fileName);
+			printf("\nDASH FINALY SAYS: ");
+			printf("%s",bytes);
+			*/
+			int bytesInt = atoi(bytes);
+			//printf("%i\n",bytesInt);
+			int it;	
+			for(it = 1; it < bytesInt+2; it++){
+				dataBuffer[it - 1] = dataStart[it];
+			}
+			//printf("%s", dataBuffer);  //assuming data is null termed
+
+			if (strcmp(command,"ADD") == 0){
+				printf("inside the add command\n");
+				struct stat sb;
+				if (stat(fileName, &sb) == -1){
+					printf("file created\n");
+					int fd;
+					fd = open(fileName, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
+					if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
+						write(fd, dataBuffer, bytesInt - 1); 	
+					}
+					else{	write(fd, dataBuffer, bytesInt );	} //not a txt file, I hope
+					//need to send back ACK
+					int ret = send( inputData.socket, "ACK", 3, 0 );
+					fflush( NULL );
+					if ( ret != 3 ) { perror( "send() failed\n" ); }
+				}
+				else{
+					printf("exists\n");
+					//send back ERROR: FILE EXISTS
+					int ret = send( inputData.socket, "ERROR: FILE EXISTS", 18, 0 );
+					fflush( NULL );
+					if ( ret != 18 ) { perror( "send() failed\n" ); }
+	
+				}
+				//need to search for the filename to see if it exists
+				//if not create the file and fill in the data and return ACK, else return error
+				//I think this is done....
+			}
+
+			if (strcmp(command,"APPEND") == 0){
+				printf("inside the append command\n");
+				struct stat sb;
+				if (stat(fileName, &sb) == -1){
+					printf("file Does not exist\n");
+					//need to send back ERROR: NO SUCH FILE
+					int fileSize = sizeof("ERROR: NO SUCH FILE\n");
+					int ret = send( inputData.socket, "ERROR: NO SUCH FILE\n", fileSize, 0 );
+					fflush( NULL );					
+					if ( ret != fileSize ) { perror( "send() failed\n" ); }
+				}
+				else{
+					printf("appending to file\n");
+
+					//need code to append to file
+
+					//send back ACK 
+					int ret = send( inputData.socket, "ACK", 3, 0 );
+					fflush( NULL );
+					if ( ret != 3 ) { perror( "send() failed\n" ); }
+	
+				}
+				//need to search for the filename to see if it exists
+				//if not create the file and fill in the data and return ACK, else return error
+				//I think this is done....
+			}
+
+			
+			//if append
+			//if read
+			//if list
+			//if delete
+
+		}
+	}while(recvVal > 0);
+	printf("closing thread");
+
+/*
+	printf("Thread before the while\n");
+	while(pollFileData.revents == 0){
+		printf("thread in while\n");
+		if(poll(&pollFileData, 1, 100) > 0){
+			printf("thread in if poll\n revents: %i", pollFileData.revents);
+			// >0 means data avalible or socket closed
+			if(recv(inputData.socket, inputBuffer, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT) == 0){
+				//if returns zero connection has been closed
+				printf(" ++ thread closing, socket was closed \n");
+				pthread_exit(0);
+			}
+		}
+	}
+*/
+	close(inputData.socket);
+	pthread_exit(0);	
 	return 0;
 }
 
