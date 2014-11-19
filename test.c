@@ -15,9 +15,17 @@ int globalInt = 0;
 
 void * threadMe(void * input);
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITALIZER;
+struct passOff{
+	int num;
+	pthread_mutex_t *mut;
+};
 
 int main(){
+
+	
+	pthread_mutex_t mutex;
+	pthread_mutex_init(&mutex, NULL);
+	
 	struct stat sb;
 	char *dirChange = ".storage";
 	chdir(dirChange);
@@ -28,14 +36,16 @@ int main(){
 	}
 
 	pthread_t tid[4];
-	int * first;
+	struct passOff * first;
 	int ret;
+
+
 
 	int iter;
 	for (iter = 0; iter < 4; iter++){		
-		first = (int *) malloc(sizeof(int));
-		*first = iter;
-
+		first = (struct passOff *) malloc(sizeof(struct passOff));
+		first->num = iter;
+		first->mut = &mutex;
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
 
 		if (ret != 0){printf("thread failed");}
@@ -45,22 +55,30 @@ int main(){
 
 	for (iter = 0; iter < 4; iter++){
 		pthread_join(tid[iter], (void **)&first);
-		printf("caught: %i  \n", *first);
+		printf("caught: %i  \n", first->num);
 		free(first);
 	}
+
+	pthread_mutex_destroy(&mutex);
   return 1;
 }
 
 
 void * threadMe(void * input){
 	
-	int one = *(int *)input;
+
+
+	struct passOff one = *(struct passOff *)input;
+	pthread_mutex_lock(one.mut);
+	printf("mutex locked\n");
+	fflush(NULL);
 	//free(input);
-	printf("my value is %i\n", one);
+	printf("my value is %i\n", one.num);
 	printf("globalVal was : %i\n",globalInt);
 	globalInt++;
 	printf("globalVal is : %i\n",globalInt);
-
+	pthread_mutex_unlock(one.mut);
+	printf("after mutex unlock\n");
 	pthread_exit(input);
 }
 
