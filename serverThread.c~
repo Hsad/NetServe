@@ -427,35 +427,40 @@ void * threadStart(void * input){
 			}
 			//printf("%s", dataBuffer);  //assuming data is null termed
 
+//Mutex Aquisition, Do I need to allow ADD to run first?  Or list actually first, then ADD?
+//search fileNames for mutex matching with input filename
+//store index of filename
+//save mutexes at that index 
+//if the 
+
+
+//ADD	
 			if (strcmp(command,"ADD") == 0){
 				printf("inside the add command\n");
 				struct stat sb;
 				if (stat(fileName, &sb) == -1){
-					printf("file created\n");
+//need to create mutex for file
+//then lock that mutex
+					printf("file does not exist and will be created\n");
 					int fd;
 					fd = open(fileName, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
 					if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
 						write(fd, dataBuffer, bytesInt - 1); 	
 					}
 					else{	write(fd, dataBuffer, bytesInt );	} //not a txt file, I hope
-					//need to send back ACK
 					int ret = send( inputData.socket, "ACK", 3, 0 );
 					fflush( NULL );
 					if ( ret != 3 ) { perror( "send() failed\n" ); }
 				}
 				else{
 					printf("exists\n");
-					//send back ERROR: FILE EXISTS
 					int ret = send( inputData.socket, "ERROR: FILE EXISTS", 18, 0 );
 					fflush( NULL );
 					if ( ret != 18 ) { perror( "send() failed\n" ); }
 	
 				}
-				//need to search for the filename to see if it exists
-				//if not create the file and fill in the data and return ACK, else return error
-				//I think this is done....
 			}
-
+//APPEND
 			if (strcmp(command,"APPEND") == 0){
 				printf("inside the append command\n");
 				struct stat sb;
@@ -475,14 +480,10 @@ void * threadStart(void * input){
 					//send back ACK 
 					int ret = send( inputData.socket, "ACK", 3, 0 );
 					fflush( NULL );
-					if ( ret != 3 ) { perror( "send() failed\n" ); }
-	
+					if ( ret != 3 ) { perror( "send() failed\n" ); }	
 				}
-				//need to search for the filename to see if it exists
-				//if not create the file and fill in the data and return ACK, else return error
-				//I think this is done....
 			}
-
+//READ
 			
 			//if append
 			//if read

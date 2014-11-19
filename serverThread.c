@@ -433,12 +433,47 @@ void * threadStart(void * input){
 //save mutexes at that index 
 //if the 
 
+/*   Struct refrence
+
+struct mutexPair{
+	pthread_mutex_t readMutex1;
+	pthread_mutex_t modMutex2;
+};
+
+
+struct globalFileMutex{ //mutexs first
+	struct mutexPair * mutexArrayPtr[100];
+	char * filenameArrayPtr[100];
+};
+
+struct passThroughData{
+	struct globalFileMutex * mutexData;
+	int socket;	
+};
+
+
+*/
+
+
 
 //ADD	
 			if (strcmp(command,"ADD") == 0){
 				printf("inside the add command\n");
 				struct stat sb;
 				if (stat(fileName, &sb) == -1){
+					//file doesnt exist
+					//seek out empty location for filename and mutexes
+					int loopInd;
+					for( loopInd = 0; loopInd < 0; loopInd++){
+						if (inputData->mutexData->filenameArrayPtr[loopInd] == NULL){
+							break;
+							printf("avaible file space at index: %i", loopInd);
+						}
+					}
+					printf(" indice is still: %i :after for loop\n",loopInd);
+					//setting filename into data storage
+					strncpy(inputData->mutexData->filenameArrayPtr[loopInd], fileName, sizeof(fileName));
+					
 //need to create mutex for file
 //then lock that mutex
 					printf("file does not exist and will be created\n");
