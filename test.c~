@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+int globalInt = 0;
+
 void * threadMe(void * input);
 
 int main(){
@@ -35,14 +37,15 @@ int main(){
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
 
 		if (ret != 0){printf("thread failed");}
+
+		
 	}
 
 	for (iter = 0; iter < 4; iter++){
 		pthread_join(tid[iter], (void **)&first);
-		printf("caught: %i  ", *first);
+		printf("caught: %i  \n", *first);
 		free(first);
 	}
-
   return 1;
 }
 
@@ -51,7 +54,10 @@ void * threadMe(void * input){
 	
 	int one = *(int *)input;
 	//free(input);
-	printf("my value is %i", one);
+	printf("my value is %i\n", one);
+	printf("globalVal was : %i\n",globalInt);
+	globalInt++;
+	printf("globalVal is : %i\n",globalInt);
 
 	pthread_exit(input);
 }

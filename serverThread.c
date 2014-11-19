@@ -127,11 +127,32 @@ int main()
 		//need to take in new connection and save the newsock var for the thread, 
 		//possibly with a mutex so that it isnt lost
 		//the thread should be created here
-		//
 
-
+		//need to pass the thread the newsock, 
+		//need to keep track of the tid, what is used and what is free
+		// need to set up a while loop that tries to join the threads that are done
+		//and another while loop that only calls new threads with availble tid otherwise holds.
 		
+		//does the thread need to return anything?
+		//no?
 
+		//thread needs a loop that keeps listening for the requests from the client
+		//and then calls add, list whatever
+		//the files created then need to have fuck you sabrina a few mutexs assosiated with them,
+		//one to stop writings, additions, or deletions.  One to stop new readers.  one to stop 
+		//add needs to be blocked by other adds, otherwise it is going to fail anyway, the file needs to be blocked till the write is complete though
+		//read needs to block modifications to the file, but not other reads
+		//append needs to block reading and other modifiations
+		//list can happen whenever
+		//delete needs to block modifications and reads
+		//if something is blocking reads, it must block new reads but also wait for the old reads to stop.
+		//set dontReadMutex, then set dontModMutex
+		//read: dontReadMutex readMutex (closeOpen to stop incoming new reads...?) then dontModMutex ....stuff.. modMutex
+		//add: dontReadMutex, dontModMutex ..add.. modMutex, readMutex
+		//
+		
+		
+		
 
 
 		pid = fork();

@@ -11,7 +11,11 @@
 #include <unistd.h>
 #include <pthread.h>
 
+int globalInt = 0;
+
 void * threadMe(void * input);
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITALIZER;
 
 int main(){
 	struct stat sb;
@@ -30,7 +34,7 @@ int main(){
 	int iter;
 	for (iter = 0; iter < 4; iter++){		
 		first = (int *) malloc(sizeof(int));
-		*first = 7 * iter;
+		*first = iter;
 
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
 
@@ -41,10 +45,9 @@ int main(){
 
 	for (iter = 0; iter < 4; iter++){
 		pthread_join(tid[iter], (void **)&first);
-		printf("caught: %i  ", *first);
+		printf("caught: %i  \n", *first);
 		free(first);
 	}
-
   return 1;
 }
 
@@ -53,7 +56,10 @@ void * threadMe(void * input){
 	
 	int one = *(int *)input;
 	//free(input);
-	printf("my value is %i", one);
+	printf("my value is %i\n", one);
+	printf("globalVal was : %i\n",globalInt);
+	globalInt++;
+	printf("globalVal is : %i\n",globalInt);
 
 	pthread_exit(input);
 }

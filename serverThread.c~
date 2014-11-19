@@ -68,8 +68,9 @@ int main()
 	struct dirent *dir;
 	d = opendir(".");
 	if (d){
+		printf(" -- Deleteing contents of .storage\n");
 		while ((dir = readdir(d)) != NULL){
-			printf("deleteing: %s\n", dir->d_name);			
+			//printf("deleteing: %s\n", dir->d_name);			
 			unlink(dir->d_name);
 		}
 	}
