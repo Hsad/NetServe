@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 
 int globalInt = 0;
 
@@ -27,7 +28,9 @@ int main(){
 	pthread_mutex_init(&mutex, NULL);
 	
 	struct stat sb;
-	char *dirChange = ".storage";
+	char *dirChange = ".storage\0";
+	printf("size one: %i", (int)sizeof(dirChange));
+	printf("size two: %i", (int)strlen(dirChange));
 	chdir(dirChange);
 	if (stat("abc.txt", &sb) == -1){
 		printf("seems to have failed");
@@ -47,7 +50,7 @@ int main(){
 		first->num = iter;
 		first->mut = &mutex;
 		ret = pthread_create(&tid[iter], NULL, threadMe, first);
-		usleep(1000);
+		usleep(1000);  //Apparently this is important
 
 		if (ret != 0){printf("thread failed");}
 

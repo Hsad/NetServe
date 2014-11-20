@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 
 int globalInt = 0;
 
@@ -28,6 +29,8 @@ int main(){
 	
 	struct stat sb;
 	char *dirChange = ".storage";
+	printf("size one: %i", (int)sizeof(dirChange));
+	printf("size two: %i", (int)strlen(dirChange));
 	chdir(dirChange);
 	if (stat("abc.txt", &sb) == -1){
 		printf("seems to have failed");

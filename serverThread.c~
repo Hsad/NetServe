@@ -156,7 +156,7 @@ int main()
   int fromlen = sizeof( client );
 
   int pid;
-  char buffer[ BUFFER_SIZE ];
+  //char buffer[ BUFFER_SIZE ];
 
 
 	struct passThroughData * threadStartInfo; //holds pointer to mutex Data and socket connection, to be passed to starting threads
@@ -223,6 +223,7 @@ int main()
 		
 		threadStartInfo = (struct passThroughData *) malloc(sizeof(struct passThroughData));
 		threadStartInfo->socket = newsock;
+		threadStartInfo->mutexData = fileMutexData;
 		//set pointer to mutex array
 
 
@@ -239,7 +240,7 @@ int main()
     }
     else if ( pid == 0 )
     {
-      int n;
+      //int n;
 
 #if 0
 sleep( 10 );
@@ -380,10 +381,16 @@ void * threadStart(void * input){
 	//pollFileData.revents = 0;
 	
 	int recvVal;
-
+	char *command;
+	char *fileName;
+	char *bytes;
+	char *dataStart;
+	char bufCopy[BUFFER_SIZE];    //like this
+	char dataBuffer[BUFFER_SIZE]; //and this
 	do{
 		printf("Thread recive call\n");
 		fflush(NULL);
+		//memset(inputBuffer, 0, BUFFER_SIZE);
 		recvVal = recv( inputData.socket, inputBuffer, BUFFER_SIZE, 0 );
 
 		if (recvVal  < 0 )
@@ -397,20 +404,37 @@ void * threadStart(void * input){
 		else
 		{
 			//things happen here
-			printf("Things happen here");
+			//printf("Things happen here");
 			//might want a function that takes the filename and return the mutex index, or just copy and paste like a fiend
 			
 
 	//initalizeation data, some might need to be moved elsewhere
+			printf("before the command catch\n");
+			fflush(NULL);
 
-			char bufCopy[BUFFER_SIZE];    //like this
-			char dataBuffer[BUFFER_SIZE]; //and this
+			printf("bufCopy = %s\n",bufCopy);
+			//clean the past values
+			memset(bufCopy, 0, BUFFER_SIZE);
+			printf("bufCopy = %s\n",bufCopy);
+			memset(dataBuffer, 0, BUFFER_SIZE);
+
+			command = NULL;
+			fileName = NULL;
+			bytes = NULL;
+			dataStart = NULL;
+			printf("filename has been reset to: %s\n", fileName);
+
 			strncpy(bufCopy, inputBuffer, BUFFER_SIZE);
 			strncpy(dataBuffer, inputBuffer, BUFFER_SIZE);
-			char *command = strtok(bufCopy," \n");
-			char *fileName = strtok(NULL," \n");
-			char *bytes = strtok(NULL," \n");
-			char *dataStart = strchr(inputBuffer, '\n');
+			command = strtok(bufCopy," \n");
+			printf("command is: %s\n", command);
+			if (strcmp(command, "LIST") != 0){ 
+				fileName = strtok(NULL," \n"); //wont happen if command is list
+			}			
+			printf("filename is set to: %s\n", fileName);
+			bytes = strtok(NULL," \n");
+			dataStart = strchr(inputBuffer, '\n');
+			printf("after command catch, command is %s\n----\n", command);
 			/*
 			printf("DASH SAYS: ");
 			printf("%s",command);
@@ -426,21 +450,100 @@ void * threadStart(void * input){
 				dataBuffer[it - 1] = dataStart[it];
 			}
 			//printf("%s", dataBuffer);  //assuming data is null termed
-
+			//int ret;
 //Mutex Aquisition, Do I need to allow ADD to run first?  Or list actually first, then ADD?
 //search fileNames for mutex matching with input filename
 //store index of filename
 //save mutexes at that index 
 //if the 
 
+/*   Struct refrence
 
+struct mutexPair{
+	pthread_mutex_t readMutex1;
+	pthread_mutex_t modMutex2;
+};
+
+
+struct globalFileMutex{ //mutexs first
+	struct mutexPair * mutexArrayPtr[100];
+	char * filenameArrayPtr[100];
+};
+
+struct passThroughData{
+	struct globalFileMutex * mutexData;
+	int socket;	
+};
+
+(struct globalFileMutex *) malloc(sizeof(struct globalFileMutex));
+*/
+
+//LIST Temp
+			if (strcmp(command,"LIST") == 0){
+				printf("in list , and printing something I should remove soon\n");
+				printf("file name at starage 0 = %s", inputData.mutexData->filenameArrayPtr[0]);
+				printf("file name at starage 1 = %s", inputData.mutexData->filenameArrayPtr[1]);
+				fflush(NULL);
+				//need to send file names.  number of files + \n + fileone name + \n + filetwo name
+				char listBuffer[1024];
+				char otherTempBuff[1024];
+				int fileCount = 0;
+				
+				DIR *derp;
+				struct dirent *direc;
+				struct stat statPronto;
+				derp = opendir(".");
+				if (derp){
+					printf(" -- Deleteing contents of .storage\n");
+					while ((direc = readdir(derp)) != NULL){
+						lstat(direc->d_name, &statPronto );
+						if ( !S_ISDIR(statPronto.st_mode)){ //if not a directory
+							fileCount++;
+							printf("listing: %s\n", direc->d_name);
+							strcat(otherTempBuff, direc->d_name);
+							strcat(otherTempBuff, "\n");
+						}
+					}
+				}
+				sprintf(listBuffer, "%i\n", fileCount);
+				strcat(listBuffer, otherTempBuff);
+				printf("the list buffer is now %s\n", listBuffer);
+
+
+				int fileSize = strlen(listBuffer); 
+				int ret = send( inputData.socket, listBuffer, fileSize, 0 );
+				fflush( NULL );					
+				if ( ret != fileSize ) { perror( "send() failed\n" ); }
+			}
+
+			printf("after list, before add");
+			fflush(NULL);
 //ADD	
 			if (strcmp(command,"ADD") == 0){
 				printf("inside the add command\n");
 				struct stat sb;
 				if (stat(fileName, &sb) == -1){
-//need to create mutex for file
+					//file doesnt exist
+					//seek out empty location for filename and mutexes
+					int loopInd;
+					for( loopInd = 0; loopInd < 100; loopInd++){
+						if (inputData.mutexData->filenameArrayPtr[loopInd] == NULL){
+							printf("avaible file space at index: %i", loopInd);							
+							break;
+						}
+					}
+					printf(" indice is still: %i :after for loop\n",loopInd);
+					printf("creating a mutex in index %i, for file %s", loopInd, fileName);
+					//setting filename into data storage
+					inputData.mutexData->filenameArrayPtr[loopInd] = (char *) malloc(sizeof(fileName));
+					strncpy(inputData.mutexData->filenameArrayPtr[loopInd], fileName, (int)sizeof(fileName));
+					inputData.mutexData->mutexArrayPtr[loopInd] = (struct mutexPair *) malloc(sizeof(struct mutexPair));
+					pthread_mutex_init(&inputData.mutexData->mutexArrayPtr[loopInd]->readMutex1, NULL);
+					pthread_mutex_init(&inputData.mutexData->mutexArrayPtr[loopInd]->modMutex2, NULL);
+//need to create mutex for file...Done
 //then lock that mutex
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[loopInd]->readMutex1);
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[loopInd]->modMutex2);
 					printf("file does not exist and will be created\n");
 					int fd;
 					fd = open(fileName, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -451,6 +554,8 @@ void * threadStart(void * input){
 					int ret = send( inputData.socket, "ACK", 3, 0 );
 					fflush( NULL );
 					if ( ret != 3 ) { perror( "send() failed\n" ); }
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[loopInd]->readMutex1);
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[loopInd]->modMutex2);
 				}
 				else{
 					printf("exists\n");
@@ -460,11 +565,37 @@ void * threadStart(void * input){
 	
 				}
 			}
+
+
+
+//now it should be safe to find the mutex index for the mutexes
+//if it is not found set it to -1;  and check against that.
+			printf("before the mutex index search");
+			fflush(NULL);
+			int mutexLocIndex;			
+			int found = 0;
+			if(fileName != NULL){			
+				for (mutexLocIndex = 0; mutexLocIndex < 100; mutexLocIndex++){
+					printf("seg? with: %i\n and Filename of: %s", strcmp(inputData.mutexData->filenameArrayPtr[mutexLocIndex], fileName), fileName);
+					fflush(NULL);
+					if (fileName != NULL && strcmp(inputData.mutexData->filenameArrayPtr[mutexLocIndex], fileName) == 0){
+						printf("Filename mutex location found at: %i", mutexLocIndex);							
+						found = 1;					
+						break;
+					}
+				}
+				if(found == 0){//not found
+					mutexLocIndex = -1;
+					printf("mutext index Not found");
+				}
+				printf("Index mutex found at %i", mutexLocIndex);
+				fflush(NULL);
+			}
 //APPEND
 			if (strcmp(command,"APPEND") == 0){
 				printf("inside the append command\n");
 				struct stat sb;
-				if (stat(fileName, &sb) == -1){
+				if (stat(fileName, &sb) == -1 ){
 					printf("file Does not exist\n");
 					//need to send back ERROR: NO SUCH FILE
 					int fileSize = sizeof("ERROR: NO SUCH FILE\n");
@@ -472,23 +603,116 @@ void * threadStart(void * input){
 					fflush( NULL );					
 					if ( ret != fileSize ) { perror( "send() failed\n" ); }
 				}
-				else{
+				else if (mutexLocIndex >= 0){
+					printf("mutexes about to be locked");
+					fflush(NULL);
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1);
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
 					printf("appending to file\n");
+					fflush(NULL);
 
 					//need code to append to file
-
-					//send back ACK 
+					int fd;
+					fd = open(fileName, O_WRONLY | O_APPEND, S_IRWXU | S_IRWXG | S_IRWXO);
+					if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
+						write(fd, dataBuffer, bytesInt - 1); 	
+					}
+					else{	write(fd, dataBuffer, bytesInt );	} //not a txt file, I hope
 					int ret = send( inputData.socket, "ACK", 3, 0 );
 					fflush( NULL );
+
+					//send back ACK 
 					if ( ret != 3 ) { perror( "send() failed\n" ); }	
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1);
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
+				}
+				else{
+					printf("\n\n MUTEX FOR FILE DOES NOT EXIST??? \n\n");
 				}
 			}
 //READ
-			
-			//if append
-			//if read
-			//if list
-			//if delete
+			if (strcmp(command,"READ") == 0){
+				printf("inside the read command\n");
+				struct stat sb;
+				if (stat(fileName, &sb) == -1 ){
+					printf("file Does not exist\n");
+					//need to send back ERROR: NO SUCH FILE
+					int fileSize = sizeof("ERROR: NO SUCH FILE\n");
+					int ret = send( inputData.socket, "ERROR: NO SUCH FILE\n", fileSize, 0 );
+					fflush( NULL );					
+					if ( ret != fileSize ) { perror( "send() failed\n" ); }
+				}
+				else if (mutexLocIndex >= 0){
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1); //read lock to block reading when edits are being made
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1); //unlock so other readers can read
+					printf("reading file\n");
+					char readBuf[1024];
+					char otherBuf[1024];
+					strcat(readBuf, "ACK ");
+					
+					int fd;
+					int byteCount;
+					fd = open(fileName, O_RDONLY , S_IRWXU | S_IRWXG | S_IRWXO);
+					//if (strstr(fileName, dotTxt) != NULL){ //file contains .txt
+					byteCount = read(fd, otherBuf, 1024);
+					sprintf(readBuf, "%i\n", byteCount);
+					strcat(readBuf, otherBuf);
+					//}
+					//else{	write(fd, dataBuffer, bytesInt );	}
+					//need code to read the file and send contents
+
+					//send back ACK + bytes + \n + filecontents
+					printf("buffer from read, about to be sent:  %s\n", readBuf);
+					int ret = send( inputData.socket, readBuf, strlen(readBuf), 0 );
+					fflush( NULL );
+					if ( ret != strlen(readBuf) ) { perror( "send() failed\n" ); }	
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
+				}
+				else{
+					printf("\n\n MUTEX FOR FILE DOES NOT EXIST??? \n\n");
+				}
+			}
+//DELETE
+			if (strcmp(command,"DELETE") == 0){
+				printf("inside the Delete command\n");
+				struct stat sb;
+				if (stat(fileName, &sb) == -1 ){
+					printf("file Does not exist\n");
+					//need to send back ERROR: NO SUCH FILE
+					int fileSize = sizeof("ERROR: NO SUCH FILE\n");
+					int ret = send( inputData.socket, "ERROR: NO SUCH FILE\n", fileSize, 0 );
+					fflush( NULL );					
+					if ( ret != fileSize ) { perror( "send() failed\n" ); }
+				}
+				else if (mutexLocIndex >= 0){
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1); 
+					pthread_mutex_lock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
+
+					printf("Deleting file\n");
+					//NEED code to delete file
+
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->modMutex2);
+					pthread_mutex_unlock(&inputData.mutexData->mutexArrayPtr[mutexLocIndex]->readMutex1);
+
+					int ret = send( inputData.socket, "ACK", 3, 0 );
+					fflush( NULL );
+					if ( ret != 3 ) { perror( "send() failed\n" ); }	
+
+				}
+				else{
+					printf("\n\n MUTEX FOR FILE DOES NOT EXIST??? \n\n");
+				}
+			}
+
+//readv2:  lockread, lockMod, unlock read, ........., unlock mod
+		//addv2: lock read, lock mod, .....if creating file, create mutex assosiation.... unlock mod, unlock read
+		//append: lock read, lock mod ...... unlock mod, unlock read
+		//list: ...list files...
+		//delete: lock read, lock mod .... delete file... save pointers to filename and mutexes... 
+		//  set to NULL in storage... unlock mod, unlock read, free filename and mutex mem, delete done
+
+
 
 		}
 	}while(recvVal > 0);
